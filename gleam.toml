@@ -1,0 +1,12 @@
+name = "gleamson"
+version = "0.1.0"
+gleam = ">= 1.5.0"
+licences = ["Apache-2.0"]
+description = "A fast, pure-Gleam JSON library with a transparent value tree and combinator decoders"
+repository = { type = "github", user = "akif", repo = "gleamson" }
+
+[dependencies]
+gleam_stdlib = ">= 0.51.0 and < 2.0.0"
+
+[dev-dependencies]
+gleeunit = ">= 1.0.0 and < 2.0.0"
