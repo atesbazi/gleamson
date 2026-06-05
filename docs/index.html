@@ -1,0 +1,623 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>gleamson — JSON for Gleam</title>
+<meta name="description" content="A pure-Gleam JSON library: a transparent value tree, combinator decoders that accumulate every error, pretty printing, merge, JSON Pointer and JSON Patch — identical on Erlang and JavaScript." />
+<meta property="og:title" content="gleamson — JSON for Gleam" />
+<meta property="og:description" content="Pure-Gleam JSON: transparent values, error-accumulating decoders, the same behaviour on Erlang and JavaScript." />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://atesbazi.github.io/gleamson/" />
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32'><path d='M16 1 L19.4 12.6 L31 16 L19.4 19.4 L16 31 L12.6 19.4 L1 16 L12.6 12.6 Z' fill='%23ffaff3'/></svg>" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #0b0a10;
+    --bg-soft: #100e18;
+    --surface: #15131f;
+    --surface-2: #1b1828;
+    --line: rgba(255, 255, 255, 0.09);
+    --line-strong: rgba(255, 255, 255, 0.16);
+    --text: #efeaf6;
+    --muted: #9a93ad;
+    --faint: #6e6880;
+    --pink: #ffaff3;
+    --pink-deep: #ff79e4;
+    --lilac: #c7b6ff;
+    --mint: #9af2dc;
+    --code-bg: #100d18;
+    --shadow: 0 30px 80px -30px rgba(0, 0, 0, 0.8);
+    --maxw: 1120px;
+  }
+
+  * { box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Hanken Grotesk", sans-serif;
+    font-size: 17px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+
+  /* Atmosphere: soft pink glows + faint grid */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -2;
+    background:
+      radial-gradient(60vw 50vh at 78% -8%, rgba(255, 175, 243, 0.16), transparent 60%),
+      radial-gradient(55vw 45vh at 8% 8%, rgba(199, 182, 255, 0.10), transparent 60%),
+      radial-gradient(50vw 60vh at 50% 120%, rgba(154, 242, 220, 0.07), transparent 60%);
+  }
+  body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -2;
+    background-image:
+      linear-gradient(var(--line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--line) 1px, transparent 1px);
+    background-size: 64px 64px;
+    -webkit-mask-image: radial-gradient(ellipse 90% 70% at 50% 30%, black, transparent 80%);
+    mask-image: radial-gradient(ellipse 90% 70% at 50% 30%, black, transparent 80%);
+    opacity: 0.35;
+  }
+
+  a { color: inherit; text-decoration: none; }
+  ::selection { background: var(--pink); color: #1a0f17; }
+
+  .wrap { width: 100%; max-width: var(--maxw); margin: 0 auto; padding: 0 28px; }
+
+  /* ---------- Nav ---------- */
+  header {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    backdrop-filter: blur(12px);
+    background: linear-gradient(180deg, rgba(11, 10, 16, 0.85), rgba(11, 10, 16, 0.4));
+    border-bottom: 1px solid var(--line);
+  }
+  nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 68px;
+  }
+  .brand { display: flex; align-items: center; gap: 11px; font-weight: 600; letter-spacing: -0.01em; }
+  .brand .spark { width: 18px; height: 18px; filter: drop-shadow(0 0 8px var(--pink)); }
+  .brand b { font-family: "Fraunces", serif; font-weight: 600; font-size: 1.18rem; }
+  .nav-links { display: flex; align-items: center; gap: 30px; font-size: 0.96rem; color: var(--muted); }
+  .nav-links a { transition: color 0.2s ease; }
+  .nav-links a:hover { color: var(--text); }
+  .nav-cta {
+    color: var(--text);
+    border: 1px solid var(--line-strong);
+    padding: 7px 15px;
+    border-radius: 999px;
+    transition: border-color 0.2s ease, background 0.2s ease;
+  }
+  .nav-cta:hover { border-color: var(--pink); background: rgba(255, 175, 243, 0.08); }
+
+  /* ---------- Hero ---------- */
+  .hero { padding: 92px 0 30px; }
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 0.74rem;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--pink);
+    border: 1px solid var(--line-strong);
+    border-radius: 999px;
+    padding: 6px 14px;
+    background: rgba(255, 175, 243, 0.05);
+  }
+  .eyebrow .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--mint); box-shadow: 0 0 10px var(--mint); }
+
+  h1.wordmark {
+    font-family: "Fraunces", serif;
+    font-weight: 600;
+    font-size: clamp(3.6rem, 13vw, 8.5rem);
+    line-height: 0.92;
+    letter-spacing: -0.04em;
+    margin: 26px 0 0;
+    background: linear-gradient(105deg, #ffd8f6 0%, var(--pink) 30%, #ffffff 48%, var(--pink) 60%, #e9a9ff 100%);
+    background-size: 250% 100%;
+    background-position: 120% 0;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: shine 6.5s ease-in-out infinite;
+  }
+  @keyframes shine {
+    0% { background-position: 130% 0; }
+    55%, 100% { background-position: -30% 0; }
+  }
+
+  .lede {
+    max-width: 640px;
+    margin: 28px 0 0;
+    font-size: clamp(1.1rem, 2.2vw, 1.42rem);
+    line-height: 1.5;
+    color: #d7d1e4;
+  }
+  .lede b { color: #fff; font-weight: 600; }
+
+  .cta-row { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; margin-top: 36px; }
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    padding: 13px 22px;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 1rem;
+    border: 1px solid transparent;
+    transition: transform 0.18s ease, box-shadow 0.25s ease, background 0.2s ease, border-color 0.2s ease;
+  }
+  .btn svg { width: 17px; height: 17px; }
+  .btn-primary {
+    color: #220b1d;
+    background: linear-gradient(180deg, #ffc7f4, var(--pink));
+    box-shadow: 0 12px 34px -10px var(--pink);
+  }
+  .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 18px 44px -10px var(--pink); }
+  .btn-ghost { color: var(--text); border-color: var(--line-strong); background: rgba(255, 255, 255, 0.02); }
+  .btn-ghost:hover { border-color: var(--lilac); background: rgba(199, 182, 255, 0.08); transform: translateY(-2px); }
+
+  .install {
+    margin-top: 22px;
+    display: inline-flex;
+    align-items: center;
+    gap: 14px;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 0.98rem;
+    background: var(--code-bg);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 12px 12px 12px 18px;
+  }
+  .install .prompt { color: var(--faint); }
+  .install .cmd { color: var(--text); }
+  .install .cmd .pkg { color: var(--pink); }
+  .copy {
+    border: 1px solid var(--line-strong);
+    background: var(--surface-2);
+    color: var(--muted);
+    border-radius: 8px;
+    padding: 6px 11px;
+    font: inherit;
+    font-size: 0.82rem;
+    cursor: pointer;
+    transition: color 0.2s, border-color 0.2s, background 0.2s;
+  }
+  .copy:hover { color: var(--text); border-color: var(--pink); }
+  .copy.done { color: var(--mint); border-color: var(--mint); }
+
+  /* ---------- Code card ---------- */
+  .hero-grid { display: grid; grid-template-columns: 1.05fr 0.95fr; gap: 54px; align-items: center; }
+  @media (max-width: 900px) { .hero-grid { grid-template-columns: 1fr; gap: 40px; } }
+
+  .code-card {
+    background: linear-gradient(180deg, var(--surface), var(--code-bg));
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  .code-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 13px 16px;
+    border-bottom: 1px solid var(--line);
+    background: rgba(255, 255, 255, 0.015);
+  }
+  .code-head .tl { width: 11px; height: 11px; border-radius: 50%; background: #33303f; }
+  .code-head .tl:nth-child(1) { background: #ff5f57; opacity: 0.55; }
+  .code-head .tl:nth-child(2) { background: #febc2e; opacity: 0.55; }
+  .code-head .tl:nth-child(3) { background: #28c840; opacity: 0.55; }
+  .code-head .file { margin-left: 8px; font-family: "JetBrains Mono", monospace; font-size: 0.8rem; color: var(--faint); }
+
+  pre {
+    margin: 0;
+    padding: 22px 24px;
+    overflow-x: auto;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 0.86rem;
+    line-height: 1.75;
+    color: #d4cee2;
+  }
+  pre .c { color: #6c6680; font-style: italic; }
+  pre .k { color: var(--pink); }
+  pre .s { color: var(--mint); }
+  pre .t { color: var(--lilac); }
+  pre .fn { color: #ffd9a0; }
+  pre .n { color: #ffb1b1; }
+
+  /* ---------- Section scaffolding ---------- */
+  section { position: relative; }
+  .section-pad { padding: 96px 0; }
+  .kicker {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 0.75rem;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: var(--pink-deep);
+  }
+  h2.title {
+    font-family: "Fraunces", serif;
+    font-weight: 600;
+    font-size: clamp(2.1rem, 5vw, 3.3rem);
+    letter-spacing: -0.03em;
+    line-height: 1.05;
+    margin: 14px 0 0;
+  }
+  .section-intro { max-width: 620px; color: var(--muted); margin-top: 16px; font-size: 1.08rem; }
+
+  /* ---------- Features ---------- */
+  .features {
+    margin-top: 54px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 18px;
+  }
+  @media (max-width: 880px) { .features { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 560px) { .features { grid-template-columns: 1fr; } }
+
+  .card {
+    background: linear-gradient(180deg, var(--surface), rgba(21, 19, 31, 0.5));
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 26px 24px 28px;
+    transition: transform 0.25s ease, border-color 0.25s ease, background 0.25s ease;
+  }
+  .card:hover { transform: translateY(-4px); border-color: var(--line-strong); background: linear-gradient(180deg, var(--surface-2), var(--surface)); }
+  .card .ic {
+    width: 42px; height: 42px;
+    display: grid; place-items: center;
+    border-radius: 11px;
+    background: rgba(255, 175, 243, 0.10);
+    border: 1px solid rgba(255, 175, 243, 0.22);
+    margin-bottom: 18px;
+  }
+  .card .ic svg { width: 21px; height: 21px; stroke: var(--pink); fill: none; stroke-width: 1.7; }
+  .card h3 { margin: 0 0 8px; font-size: 1.16rem; font-weight: 600; letter-spacing: -0.01em; }
+  .card p { margin: 0; color: var(--muted); font-size: 0.97rem; line-height: 1.55; }
+  .card code { font-family: "JetBrains Mono", monospace; font-size: 0.86em; color: var(--lilac); }
+
+  /* ---------- Code showcase tabs ---------- */
+  .showcase { margin-top: 50px; border: 1px solid var(--line); border-radius: 18px; overflow: hidden; background: var(--code-bg); box-shadow: var(--shadow); }
+  .tabs { display: flex; gap: 4px; padding: 10px 10px 0; border-bottom: 1px solid var(--line); background: rgba(255,255,255,0.015); flex-wrap: wrap; }
+  .tab {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 0.82rem;
+    color: var(--muted);
+    background: transparent;
+    border: 1px solid transparent;
+    border-bottom: none;
+    padding: 10px 16px;
+    border-radius: 10px 10px 0 0;
+    cursor: pointer;
+    transition: color 0.18s, background 0.18s;
+  }
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--text); background: var(--code-bg); border-color: var(--line); position: relative; top: 1px; }
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  /* ---------- Closing ---------- */
+  .closing { text-align: center; padding: 110px 0; }
+  .closing h2 {
+    font-family: "Fraunces", serif;
+    font-weight: 600;
+    font-size: clamp(2.3rem, 6vw, 4rem);
+    letter-spacing: -0.03em;
+    line-height: 1.05;
+    margin: 16px auto 0;
+    max-width: 760px;
+  }
+  .closing .gleam { color: var(--pink); }
+  .closing p { color: var(--muted); margin: 20px auto 0; max-width: 520px; }
+  .closing .cta-row { justify-content: center; }
+
+  /* ---------- Footer ---------- */
+  footer { border-top: 1px solid var(--line); padding: 40px 0; }
+  .foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 18px;
+    color: var(--faint);
+    font-size: 0.92rem;
+  }
+  .foot a { color: var(--muted); transition: color 0.2s; }
+  .foot a:hover { color: var(--pink); }
+  .foot .foot-links { display: flex; gap: 24px; flex-wrap: wrap; }
+
+  /* ---------- Reveal animation ---------- */
+  .reveal { opacity: 0; transform: translateY(22px); transition: opacity 0.7s cubic-bezier(.2,.7,.2,1), transform 0.7s cubic-bezier(.2,.7,.2,1); }
+  .reveal.in { opacity: 1; transform: none; }
+  .hero .reveal { animation: rise 0.9s cubic-bezier(.2,.7,.2,1) both; opacity: 1; transform: none; }
+  .hero .d1 { animation-delay: 0.05s; }
+  .hero .d2 { animation-delay: 0.15s; }
+  .hero .d3 { animation-delay: 0.25s; }
+  .hero .d4 { animation-delay: 0.35s; }
+  .hero .d5 { animation-delay: 0.45s; }
+  @keyframes rise { from { opacity: 0; transform: translateY(26px); } to { opacity: 1; transform: none; } }
+
+  @media (max-width: 680px) {
+    .nav-links a:not(.nav-cta) { display: none; }
+    .hero { padding: 60px 0 10px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+    .reveal { opacity: 1; transform: none; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <nav>
+      <a class="brand" href="#top" aria-label="gleamson home">
+        <svg class="spark" viewBox="0 0 32 32" aria-hidden="true"><path d="M16 1 L19.4 12.6 L31 16 L19.4 19.4 L16 31 L12.6 19.4 L1 16 L12.6 12.6 Z" fill="#ffaff3"/></svg>
+        <b>gleamson</b>
+      </a>
+      <div class="nav-links">
+        <a href="#features">Features</a>
+        <a href="#code">Examples</a>
+        <a href="https://hexdocs.pm/gleamson/" target="_blank" rel="noopener">Docs</a>
+        <a class="nav-cta" href="https://github.com/atesbazi/gleamson" target="_blank" rel="noopener">GitHub</a>
+      </div>
+    </nav>
+  </div>
+</header>
+
+<main id="top">
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="wrap hero-grid">
+      <div>
+        <span class="eyebrow reveal d1"><span class="dot"></span> JSON &middot; for Gleam</span>
+        <h1 class="wordmark reveal d2">gleamson</h1>
+        <p class="lede reveal d3">
+          A <b>pure-Gleam</b> JSON library. A transparent value tree, combinator
+          decoders that <b>accumulate every error</b>, and the very same
+          behaviour on Erlang and JavaScript.
+        </p>
+        <div class="install reveal d4">
+          <span class="prompt">$</span>
+          <span class="cmd" id="installCmd">gleam add <span class="pkg">gleamson</span></span>
+          <button class="copy" id="copyBtn" aria-label="Copy install command">Copy</button>
+        </div>
+        <div class="cta-row reveal d5">
+          <a class="btn btn-primary" href="https://hexdocs.pm/gleamson/" target="_blank" rel="noopener">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+            Read the docs
+          </a>
+          <a class="btn btn-ghost" href="https://hex.pm/packages/gleamson" target="_blank" rel="noopener">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+            View on Hex
+          </a>
+          <a class="btn btn-ghost" href="https://github.com/atesbazi/gleamson" target="_blank" rel="noopener">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 .5C5.7.5.5 5.7.5 12c0 5.1 3.3 9.4 7.9 10.9.6.1.8-.2.8-.5v-2c-3.2.7-3.9-1.4-3.9-1.4-.5-1.3-1.3-1.7-1.3-1.7-1.1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.7 1.3 3.4 1 .1-.8.4-1.3.7-1.6-2.6-.3-5.3-1.3-5.3-5.8 0-1.3.5-2.3 1.2-3.2-.1-.3-.5-1.5.1-3.1 0 0 1-.3 3.3 1.2a11.5 11.5 0 0 1 6 0C17 4.7 18 5 18 5c.7 1.6.2 2.8.1 3.1.8.9 1.2 1.9 1.2 3.2 0 4.5-2.7 5.5-5.3 5.8.4.4.8 1.1.8 2.2v3.3c0 .3.2.7.8.5A11.5 11.5 0 0 0 23.5 12C23.5 5.7 18.3.5 12 .5z"/></svg>
+            Star on GitHub
+          </a>
+        </div>
+      </div>
+
+      <div class="code-card reveal d4">
+        <div class="code-head"><span class="tl"></span><span class="tl"></span><span class="tl"></span><span class="file">cat.gleam</span></div>
+<pre><span class="k">import</span> gleamson
+<span class="k">import</span> gleamson/decode
+
+<span class="k">pub type</span> <span class="t">Cat</span> {
+  <span class="t">Cat</span>(name: <span class="t">String</span>, lives: <span class="t">Int</span>)
+}
+
+<span class="k">let</span> cat = {
+  <span class="k">use</span> name &lt;- decode.<span class="fn">field</span>(<span class="s">"name"</span>, decode.string)
+  <span class="k">use</span> lives &lt;- decode.<span class="fn">field</span>(<span class="s">"lives"</span>, decode.int)
+  decode.<span class="fn">success</span>(<span class="t">Cat</span>(name:, lives:))
+}
+
+decode.<span class="fn">from_string</span>(<span class="s">"{\"name\":\"Nono\",\"lives\":9}"</span>, cat)
+<span class="c">// -> Ok(Cat("Nono", 9))</span></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- FEATURES -->
+  <section id="features" class="section-pad">
+    <div class="wrap">
+      <span class="kicker reveal">Why gleamson</span>
+      <h2 class="title reveal">Built the way Gleam wants it.</h2>
+      <p class="section-intro reveal">
+        No FFI, no surprises. Just data you can see, decoders you can compose,
+        and errors that tell you everything that went wrong.
+      </p>
+
+      <div class="features">
+        <div class="card reveal">
+          <div class="ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18a14 14 0 0 1 0-18"/></svg></div>
+          <h3>Pure Gleam</h3>
+          <p>One codebase that behaves identically on Erlang and JavaScript, with no Erlang/OTP version requirement.</p>
+        </div>
+        <div class="card reveal">
+          <div class="ic"><svg viewBox="0 0 24 24"><path d="M12 2 2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg></div>
+          <h3>Transparent values</h3>
+          <p><code>Json</code> is an ordinary type you can pattern&#8209;match, walk and build. Parse&nbsp;&rarr;&nbsp;encode round&#8209;trips faithfully.</p>
+        </div>
+        <div class="card reveal">
+          <div class="ic"><svg viewBox="0 0 24 24"><path d="M12 9v4m0 4h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg></div>
+          <h3>Errors accumulate</h3>
+          <p>Decoders report <em>every</em> problem at once &mdash; each with a path like <code>["lives"]</code> &mdash; not just the first.</p>
+        </div>
+        <div class="card reveal">
+          <div class="ic"><svg viewBox="0 0 24 24"><path d="M3 6h18M3 12h12M3 18h6"/></svg></div>
+          <h3>Pretty &amp; precise</h3>
+          <p><code>to_string_pretty</code> for humans, compact <code>to_string</code> for the wire, and parse errors with exact byte positions.</p>
+        </div>
+        <div class="card reveal">
+          <div class="ic"><svg viewBox="0 0 24 24"><path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h6m4 0h-4m4 0a2 2 0 0 1 2 2v4m0 6v4a2 2 0 0 1-2 2h-4m-6 0H5a2 2 0 0 1-2-2v-4"/></svg></div>
+          <h3>Compose decoders</h3>
+          <p><code>field</code>, <code>list</code>, <code>dict</code>, <code>optional</code>, <code>one_of</code>, <code>then</code>, <code>enum</code> &mdash; the familiar <code>use</code> style.</p>
+        </div>
+        <div class="card reveal">
+          <div class="ic"><svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7M21 4v5h-5"/></svg></div>
+          <h3>Merge, Pointer &amp; Patch</h3>
+          <p>RFC&nbsp;7386 merge, RFC&nbsp;6901 JSON Pointer, and RFC&nbsp;6902 JSON Patch with <code>apply</code> and <code>diff</code> &mdash; built in.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CODE SHOWCASE -->
+  <section id="code" class="section-pad" style="padding-top:0;">
+    <div class="wrap">
+      <span class="kicker reveal">In practice</span>
+      <h2 class="title reveal">Three small examples.</h2>
+
+      <div class="showcase reveal">
+        <div class="tabs" role="tablist">
+          <button class="tab active" data-tab="encode" role="tab">encode.gleam</button>
+          <button class="tab" data-tab="accumulate" role="tab">accumulate.gleam</button>
+          <button class="tab" data-tab="patch" role="tab">patch.gleam</button>
+        </div>
+
+        <div class="panel active" data-panel="encode">
+<pre><span class="k">import</span> gleamson.{<span class="t">Int</span>, <span class="t">Null</span>, <span class="t">Object</span>, <span class="t">String</span>}
+
+<span class="t">Object</span>([
+  #(<span class="s">"name"</span>, <span class="t">String</span>(<span class="s">"Lucy"</span>)),
+  #(<span class="s">"lives"</span>, <span class="t">Int</span>(<span class="n">9</span>)),
+  #(<span class="s">"flaws"</span>, <span class="t">Null</span>),
+  #(<span class="s">"nicknames"</span>, gleamson.<span class="fn">array</span>([<span class="s">"Boo"</span>, <span class="s">"Bug"</span>], of: <span class="t">String</span>)),
+])
+|&gt; gleamson.to_string
+<span class="c">// -> {"name":"Lucy","lives":9,"flaws":null,"nicknames":["Boo","Bug"]}</span></pre>
+        </div>
+
+        <div class="panel" data-panel="accumulate">
+<pre><span class="c">// Both fields are the wrong type — you get BOTH errors, with paths.</span>
+decode.<span class="fn">from_string</span>(<span class="s">"{\"name\": 42, \"lives\": \"nine\"}"</span>, cat)
+<span class="c">// -> Error(CouldNotDecode([</span>
+<span class="c">//      DecodeError("String", "Int", ["name"]),</span>
+<span class="c">//      DecodeError("Int", "String", ["lives"]),</span>
+<span class="c">//    ]))</span>
+
+<span class="c">// Want just the first instead? Use run_first.</span>
+decode.<span class="fn">run_first</span>(value, cat)
+<span class="c">// -> Error(DecodeError("String", "Int", ["name"]))</span></pre>
+        </div>
+
+        <div class="panel" data-panel="patch">
+<pre><span class="k">import</span> gleamson/patch.{<span class="t">Add</span>, <span class="t">Replace</span>}
+
+<span class="k">let assert</span> <span class="t">Ok</span>(doc) = gleamson.<span class="fn">parse</span>(<span class="s">"{\"a\":1,\"b\":[10]}"</span>)
+
+<span class="c">// apply — atomic: all ops succeed, or none are applied</span>
+patch.<span class="fn">apply</span>(doc, [<span class="t">Replace</span>(<span class="s">"/a"</span>, <span class="t">Int</span>(<span class="n">2</span>)), <span class="t">Add</span>(<span class="s">"/b/-"</span>, <span class="t">Int</span>(<span class="n">20</span>))])
+<span class="c">// -> Ok({"a":2,"b":[10,20]})</span>
+
+<span class="c">// diff two documents into a patch you can send over the wire</span>
+<span class="k">let</span> ops = patch.<span class="fn">diff</span>(from: doc, to: updated)</pre>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CLOSING -->
+  <section class="closing">
+    <div class="wrap">
+      <span class="kicker reveal">Ready when you are</span>
+      <h2 class="reveal">Honest JSON, <span class="gleam">start to finish.</span></h2>
+      <p class="reveal">Transparent values, accumulating errors, and one behaviour across every target. Add it in one line.</p>
+      <div class="install reveal" style="margin-top:30px;">
+        <span class="prompt">$</span>
+        <span class="cmd">gleam add <span class="pkg">gleamson</span></span>
+        <button class="copy" data-copy="gleam add gleamson" aria-label="Copy install command">Copy</button>
+      </div>
+      <div class="cta-row reveal">
+        <a class="btn btn-primary" href="https://hexdocs.pm/gleamson/" target="_blank" rel="noopener">Read the docs</a>
+        <a class="btn btn-ghost" href="https://github.com/atesbazi/gleamson" target="_blank" rel="noopener">Browse the source</a>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap foot">
+    <div>
+      <a class="brand" href="#top" style="color:var(--muted)">
+        <svg class="spark" viewBox="0 0 32 32" aria-hidden="true" style="width:15px;height:15px"><path d="M16 1 L19.4 12.6 L31 16 L19.4 19.4 L16 31 L12.6 19.4 L1 16 L12.6 12.6 Z" fill="#ffaff3"/></svg>
+        gleamson &middot; Apache&#8209;2.0
+      </a>
+    </div>
+    <div class="foot-links">
+      <a href="https://hex.pm/packages/gleamson" target="_blank" rel="noopener">Hex</a>
+      <a href="https://hexdocs.pm/gleamson/" target="_blank" rel="noopener">HexDocs</a>
+      <a href="https://github.com/atesbazi/gleamson" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://gleam.run" target="_blank" rel="noopener">gleam.run</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+  // Copy buttons
+  function flash(btn) {
+    const original = btn.textContent;
+    btn.textContent = "Copied";
+    btn.classList.add("done");
+    setTimeout(() => { btn.textContent = original; btn.classList.remove("done"); }, 1400);
+  }
+  document.getElementById("copyBtn")?.addEventListener("click", (e) => {
+    navigator.clipboard?.writeText("gleam add gleamson");
+    flash(e.currentTarget);
+  });
+  document.querySelectorAll(".copy[data-copy]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      navigator.clipboard?.writeText(btn.getAttribute("data-copy"));
+      flash(btn);
+    });
+  });
+
+  // Tabs
+  const tabs = document.querySelectorAll(".tab");
+  tabs.forEach((tab) => {
+    tab.addEventListener("click", () => {
+      const name = tab.getAttribute("data-tab");
+      tabs.forEach((t) => t.classList.toggle("active", t === tab));
+      document.querySelectorAll(".panel").forEach((p) => {
+        p.classList.toggle("active", p.getAttribute("data-panel") === name);
+      });
+    });
+  });
+
+  // Scroll reveal
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (entry.isIntersecting) { entry.target.classList.add("in"); io.unobserve(entry.target); }
+    });
+  }, { threshold: 0.12 });
+  document.querySelectorAll(".reveal:not(.hero .reveal)").forEach((el) => io.observe(el));
+</script>
+</body>
+</html>
